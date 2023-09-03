@@ -1,0 +1,10 @@
+<div class="container">
+  <app-filter
+    class="filter"
+    [formData]="filterData$ | async"
+    (changeTimer)="changeTimer($event)"
+    (changeArraySize)="changeArraySize($event)"
+    (changeSpecifiedIds)="changeSpecifiedIds($event)"
+  ></app-filter>
+  <app-table class="table" [data]="list$ | async"></app-table>
+</div>

@@ -1,0 +1,14 @@
+.container {
+    border: 1px solid;
+}
+
+.filter {
+    display: block;
+    padding: 20px;
+    border-bottom: 1px solid;
+}
+
+.table {
+    display: block;
+    padding: 20px;
+}

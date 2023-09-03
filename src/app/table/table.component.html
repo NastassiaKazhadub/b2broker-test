@@ -1,0 +1,35 @@
+<table>
+  <thead>
+      <td>id</td>
+      <td>int</td>
+      <td>float</td>
+      <td>color</td>
+      <td>child</td>
+  </thead>
+  <tbody>
+      <tr *ngFor="let item of data">
+        <td>{{item.id}}</td>
+        <td>{{item.int}}</td>
+        <td>{{item.float}}</td>
+        <td>
+          <span [style.background-color]="item.color">{{item.color}}</span>
+        </td>
+        <td>
+          <table *ngIf="item.child as child">
+            <thead>
+              <td>id</td>
+              <td>color</td>
+            </thead>
+            <tbody>
+              <tr>
+                <td>{{child.id}}</td>
+                <td>
+                  <span [style.background-color]="child.color">{{child.color}}</span>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </td>
+      </tr>
+  </tbody>
+</table>
