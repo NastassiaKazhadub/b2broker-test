@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, EventEmitter, Input, OnChanges, OnDestroy, OnInit, Output, SimpleChanges } from '@angular/core';
 import { AbstractControl, FormBuilder, FormControl, FormGroup, ValidationErrors, ValidatorFn, Validators } from '@angular/forms';
-import { Subject, debounceTime, takeUntil } from 'rxjs';
+import { Subject, debounceTime, filter, map, takeUntil } from 'rxjs';
 import { FilterForm } from './filter-form';
 
 @Component({
@@ -38,18 +38,22 @@ export class FilterComponent implements OnInit, OnChanges, OnDestroy {
   ngOnInit(): void {
     this.timerControl.valueChanges.pipe(
       debounceTime(500),
+      filter(() => this.timerControl.valid),
       takeUntil(this.destroy$),
     ).subscribe((value: number) => this.changeTimer.emit(value));
 
     this.arraySizeControl.valueChanges.pipe(
       debounceTime(500),
+      filter(() => this.arraySizeControl.valid),
       takeUntil(this.destroy$),
     ).subscribe((value: number) => this.changeArraySize.emit(value));
 
     this.specifiedIdsControl.valueChanges.pipe(
       debounceTime(500),
+      filter(() => this.specifiedIdsControl.valid),
+      map(value => this.mapSpecifiedIdsFromStringToArray(value)),
       takeUntil(this.destroy$),
-    ).subscribe((value: string) => this.changeSpecifiedIds.emit(value.split(',').map(Number)));
+    ).subscribe((value: number[]) => this.changeSpecifiedIds.emit(value));
   }
 
   ngOnDestroy(): void {
@@ -109,21 +113,11 @@ export class FilterComponent implements OnInit, OnChanges, OnDestroy {
         return { invalidFormat: true };
       }
   
-      const parts = value.split(',');
-
-      if (parts.length === 0) {
-        return null;
-      }
-
-      for (const part of parts) {
-        const number = parseFloat(part);
-
-        if (isNaN(number) || number <= 0) {
-          return { incorrectNumber: true };
-        }
-      }
-  
       return null;
     };
-  } 
+  }
+
+  private mapSpecifiedIdsFromStringToArray(value: string): number[] {
+    return value.split(',').map(Number);
+  }
 }

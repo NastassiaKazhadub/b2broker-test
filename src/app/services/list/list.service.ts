@@ -26,7 +26,7 @@ export class ListService {
   shortListWithSpecifiedIds$: Observable<PseudoSocketListItem[]> = combineLatest([this.list$, this.specifiedIdsAction$])
   .pipe(
     map(([list, specifiedIds]: [PseudoSocketListItem[], number[]]) =>
-      this.getShortListWithSpecifiedIds(list, this.defaultShortListSize, specifiedIds))
+      this.getShortListWithSpecifiedIds(list, specifiedIds, this.defaultShortListSize))
   );
 
   constructor() {
@@ -70,18 +70,52 @@ export class ListService {
     return new Worker(new URL('../pseudo-socket/pseudo-socket.worker.ts', import.meta.url));
   }
   
+  // looks a bit crazy, but has the best performance
   private getShortListWithSpecifiedIds(
-    source: PseudoSocketListItem[] = [],
-    size: number,
-    specifiedIds: number[] = []
+    sourceItems: PseudoSocketListItem[],
+    priorityItemIds: number[],
+    takeSize: number
   ): PseudoSocketListItem[] {
-    const sourceItemIdToArrayIndexMap: Map<number, PseudoSocketListItem> = new Map(source.map((value) => [value.id, value]));
-    const existedSpecifiedItems: PseudoSocketListItem[] = specifiedIds
-      .filter(specifiedId => sourceItemIdToArrayIndexMap.has(specifiedId))
-      .map(specifiedId => sourceItemIdToArrayIndexMap.get(specifiedId) as PseudoSocketListItem);
-    const specifiedItemsWithTailed: PseudoSocketListItem[] = existedSpecifiedItems.concat(source.slice(-size));
-    const uniquePriorityItemsWithTailed: Set<PseudoSocketListItem> = new Set(specifiedItemsWithTailed);
+    if(!sourceItems?.length || takeSize < 0){
+      return [];
+    }
 
-    return Array.from(uniquePriorityItemsWithTailed).slice(0, size);
+    if(!priorityItemIds?.length) {
+      return sourceItems.slice(-takeSize);
+    }
+
+    const uniquePriorityItemIds = new Set(priorityItemIds);
+    const priorityItems = [];
+    const nonPriorityItems = []; 
+
+    for(let currentItemIndex = sourceItems.length - 1; currentItemIndex >= 0; currentItemIndex--) {
+      const currentItem = sourceItems[currentItemIndex];
+      const areAllPriorityItemsFound = priorityItems.length === takeSize || priorityItems.length === uniquePriorityItemIds.size;
+
+      if(areAllPriorityItemsFound) {
+        const foundItemsCount = priorityItems.length + nonPriorityItems.length;
+        const areAllItemsFound = foundItemsCount >= takeSize;
+
+        if(areAllItemsFound) {
+          break;
+        }
+
+        nonPriorityItems.unshift(currentItem);
+      } else if(uniquePriorityItemIds.has(currentItem.id)) {
+        priorityItems.unshift(currentItem);
+      } else {
+        const areAllNonPriorityItemsFound = nonPriorityItems.length >= takeSize;
+
+        if(!areAllNonPriorityItemsFound) {
+          nonPriorityItems.unshift(currentItem);
+        }
+      }
+    }
+
+    const takeNonPriorityItemsCount = takeSize - priorityItems.length;
+
+    return takeNonPriorityItemsCount > 0
+      ? priorityItems.concat(nonPriorityItems.slice(-takeNonPriorityItemsCount))
+      : priorityItems;
   }
 }
